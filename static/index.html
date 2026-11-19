@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UHS Jaja - Ailments Knowledge Discovery System</title>
+<style>
+  :root{
+    --blue:#0b4f8a; --blue-dark:#083a66; --bg:#f4f7fb; --card:#ffffff;
+    --border:#dde4ec; --text:#1b2733; --muted:#5b6b7c; --green:#1f8a4d; --red:#c0392b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  header{background:var(--blue);color:white;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;}
+  header h1{font-size:18px;margin:0;font-weight:600;}
+  header small{opacity:.85;}
+  #userbar{display:flex;align-items:center;gap:12px;font-size:14px;}
+  #userbar button{background:var(--blue-dark);color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;}
+  main{max-width:1100px;margin:24px auto;padding:0 16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;}
+  .card h2{margin-top:0;font-size:16px;color:var(--blue-dark);border-bottom:1px solid var(--border);padding-bottom:8px;}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;margin-top:10px;}
+  input,select{width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:14px;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;}
+  .row>div{flex:1;min-width:140px;}
+  button.primary{background:var(--blue);color:white;border:none;padding:10px 18px;border-radius:4px;cursor:pointer;font-size:14px;margin-top:14px;}
+  button.primary:hover{background:var(--blue-dark);}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);}
+  th{background:#eef3f9;color:var(--blue-dark);}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;}
+  .stat-box{background:#eef3f9;border-radius:6px;padding:14px;text-align:center;}
+  .stat-box .n{font-size:26px;font-weight:700;color:var(--blue-dark);}
+  .stat-box .l{font-size:12px;color:var(--muted);}
+  .bar{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px;}
+  .bar .label{width:170px;}
+  .bar .track{flex:1;background:#e7edf5;border-radius:4px;height:14px;overflow:hidden;}
+  .bar .fill{background:var(--blue);height:100%;}
+  .bar .n{width:30px;text-align:right;color:var(--muted);}
+  .msg{padding:10px;border-radius:4px;margin-top:10px;font-size:13px;}
+  .msg.ok{background:#e6f4ea;color:var(--green);}
+  .msg.err{background:#fbe9e7;color:var(--red);}
+  #login-screen{max-width:360px;margin:80px auto;}
+  .hidden{display:none !important;}
+  .tag{display:inline-block;background:#eef3f9;color:var(--blue-dark);border-radius:10px;padding:2px 9px;font-size:12px;margin-left:6px;}
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="card">
+  <h2>UHS Jaja &mdash; Sign in</h2>
+  <label>Username</label>
+  <input id="login-user" placeholder="admin">
+  <label>Password</label>
+  <input id="login-pass" type="password" placeholder="admin123">
+  <button class="primary" onclick="login()">Sign in</button>
+  <div id="login-msg"></div>
+  <p style="font-size:12px;color:var(--muted);margin-top:16px;">Default accounts: admin / admin123 (Admin), analyst / analyst123 (Analyst). Change these before using real data.</p>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div>
+      <h1>Ailments Knowledge Discovery System</h1>
+      <small>University Hospital Service, Jaja &middot; Group A58</small>
+    </div>
+    <div id="userbar">
+      <span id="whoami"></span>
+      <button onclick="logout()">Log out</button>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="card">
+      <h2>Overview</h2>
+      <div class="stats-grid" id="stat-boxes"></div>
+      <div style="margin-top:18px;">
+        <strong>Cases by ailment</strong>
+        <div id="bars-ailment"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Record a Visit</h2>
+      <div class="row">
+        <div><label>Date</label><input id="v-date" type="date"></div>
+        <div><label>Patient code</label><input id="v-patient" placeholder="P001"></div>
+        <div><label>Age group</label>
+          <select id="v-age"><option><18</option><option>18-24</option><option>25-34</option><option>35+</option></select>
+        </div>
+        <div><label>Sex</label><select id="v-sex"><option>M</option><option>F</option></select></div>
+        <div><label>Patient type</label><select id="v-type"><option>Student</option><option>Staff</option><option>Dependant</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Ailment</label><select id="v-ailment"></select></div>
+        <div><label>Complaint</label><input id="v-complaint" placeholder="Fever"></div>
+        <div><label>Treatment given</label><input id="v-treatment" placeholder="Antimalarial"></div>
+      </div>
+      <button class="primary" onclick="addVisit()">Save visit</button>
+      <div id="visit-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Recent Visits</h2>
+      <button class="primary" onclick="loadVisits()" style="margin-top:0;">Refresh</button>
+      <table>
+        <thead><tr><th>Date</th><th>Patient</th><th>Type</th><th>Age</th><th>Ailment</th></tr></thead>
+        <tbody id="visits-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Knowledge Discovery &mdash; Association Rules</h2>
+      <p style="font-size:13px;color:var(--muted);">Patterns such as "patients with X also tend to have Y", mined from recorded visits.</p>
+      <button class="primary" onclick="loadRules()" style="margin-top:0;">Run mining</button>
+      <table>
+        <thead><tr><th>If</th><th>Then</th><th>Support</th><th>Confidence</th><th>Lift</th></tr></thead>
+        <tbody id="rules-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="audit-card">
+      <h2>Audit Log <span class="tag">Admin only</span></h2>
+      <button class="primary" onclick="loadAudit()" style="margin-top:0;">Refresh</button>
+      <table>
+        <thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead>
+        <tbody id="audit-body"></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script>
+let ME = null;
+
+async function api(path, opts) {
+  const res = await fetch(path, Object.assign({headers:{'Content-Type':'application/json'}}, opts));
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+async function login() {
+  const msg = document.getElementById('login-msg');
+  msg.innerHTML = '';
+  try {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value;
+    const data = await api('/api/login', {method:'POST', body: JSON.stringify({username:u, password:p})});
+    ME = data;
+    enterApp();
+  } catch (e) {
+    msg.innerHTML = `<div class="msg err">${e.message}</div>`;
+  }
+}
+
+async function logout() {
+  await api('/api/logout', {method:'POST'});
+  ME = null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+async function enterApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('whoami').textContent = `${ME.user} (${ME.role})`;
+  document.getElementById('audit-card').style.display = ME.role === 'Admin' ? '' : 'none';
+  document.getElementById('v-date').valueAsDate = new Date();
+  await loadAilments();
+  await loadStats();
+  await loadVisits();
+}
+
+async function loadAilments() {
+  const list = await api('/api/ailments');
+  document.getElementById('v-ailment').innerHTML = list.map(a => `<option>${a}</option>`).join('');
+}
+
+async function loadStats() {
+  const s = await api('/api/stats');
+  document.getElementById('stat-boxes').innerHTML = `
+    <div class="stat-box"><div class="n">${s.total}</div><div class="l">Total visits</div></div>
+    <div class="stat-box"><div class="n">${s.patients}</div><div class="l">Patients</div></div>
+    <div class="stat-box"><div class="n">${Object.keys(s.by_ailment).length}</div><div class="l">Ailments seen</div></div>
+    <div class="stat-box"><div class="n">${Object.keys(s.by_month).length}</div><div class="l">Months of data</div></div>
+  `;
+  const max = Math.max(...Object.values(s.by_ailment), 1);
+  document.getElementById('bars-ailment').innerHTML = Object.entries(s.by_ailment).map(([name, n]) => `
+    <div class="bar">
+      <div class="label">${name}</div>
+      <div class="track"><div class="fill" style="width:${(n / max * 100).toFixed(0)}%"></div></div>
+      <div class="n">${n}</div>
+    </div>`).join('');
+}
+
+async function addVisit() {
+  const msg = document.getElementById('visit-msg');
+  msg.innerHTML = '';
+  const body = {
+    date: document.getElementById('v-date').value,
+    patient: document.getElementById('v-patient').value.trim().toUpperCase(),
+    age: document.getElementById('v-age').value,
+    sex: document.getElementById('v-sex').value,
+    type: document.getElementById('v-type').value,
+    ailment: document.getElementById('v-ailment').value,
+    complaint: document.getElementById('v-complaint').value.trim(),
+    treatment: document.getElementById('v-treatment').value.trim(),
+  };
+  try {
+    await api('/api/visits', {method:'POST', body: JSON.stringify(body)});
+    msg.innerHTML = '<div class="msg ok">Visit saved.</div>';
+    document.getElementById('v-patient').value = '';
+    document.getElementById('v-complaint').value = '';
+    document.getElementById('v-treatment').value = '';
+    await loadStats();
+    await loadVisits();
+  } catch (e) {
+    msg.innerHTML = `<div class="msg err">${e.message}</div>`;
+  }
+}
+
+async function loadVisits() {
+  const rows = await api('/api/visits?limit=15');
+  document.getElementById('visits-body').innerHTML = rows.map(r => `
+    <tr><td>${r.date}</td><td>${r.patient}</td><td>${r.type}</td><td>${r.age}</td><td>${r.ailment}</td></tr>
+  `).join('') || '<tr><td colspan="5">No visits recorded yet.</td></tr>';
+}
+
+async function loadRules() {
+  const data = await api('/api/rules');
+  document.getElementById('rules-body').innerHTML = (data.rules || []).map(r => `
+    <tr><td>${r.if}</td><td>${r.then}</td><td>${r.support}</td><td>${r.confidence}</td><td>${r.lift}</td></tr>
+  `).join('') || '<tr><td colspan="5">Not enough data yet to find patterns.</td></tr>';
+}
+
+async function loadAudit() {
+  try {
+    const rows = await api('/api/audit');
+    document.getElementById('audit-body').innerHTML = rows.map(r => `
+      <tr><td>${r.timestamp}</td><td>${r.username || ''}</td><td>${r.action}</td></tr>
+    `).join('');
+  } catch (e) { /* non-admin: ignore */ }
+}
+
+// Resume session if already logged in (e.g. page refresh)
+api('/api/me').then(enterApp).catch(() => {});
+</script>
+</body>
+</html>
